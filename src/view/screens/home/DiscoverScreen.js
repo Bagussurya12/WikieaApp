@@ -1,78 +1,98 @@
-import { View, StyleSheet, useWindowDimensions, Linking, Platform } from "react-native";
-import React from "react";
-import MapView from "react-native-maps";
-import Carousel from "react-native-reanimated-carousel";
-import { Card, Text, IconButton } from "react-native-paper";
-import { Ionicons } from "react-native-vector-icons";
+import { View, StyleSheet, useWindowDimensions, Animated } from "react-native";
+import React, { useRef, useState } from "react";
+import CarouselDiscover from "../../../components/Discover/CarouselDiscover.js";
+import TogglerButton from "../../../components/Discover/ToggleButton.js";
+import MapComponentDiscover from "../../../components/Discover/MapComponentDiscover.js";
 
+const storeMarker = require("../../../../assets/storeMarker.png");
 export default function DiscoverScreen() {
+  const { width } = useWindowDimensions();
+
+  const mapRef = useRef(null);
+  const scrollCarouselRef = useRef(null);
+  const mapAnimation = new Animated.Value(0);
+  const carouselAnimation = new Animated.Value(0);
+  const carouselAnimationRef = useRef(carouselAnimation);
+  const [isShowCarousel, setIsShowCarousel] = useState(true);
+
   const markers = [
     {
-      cordinate: { latitude: 37.8025259, longitude: -122.4351431 },
-      title: "Wikea Drop Store",
-      address: "1234 Main St, San Frasisco, CA 94122",
-      image: "https://plus.unsplash.com/premium_photo-1672136336540-2dd39fd4d1e2?auto=format&fit=crop&q=80&w=1856&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      coordinate: { latitude: 37.8025259, longitude: -122.4351431 },
+      title: "Ikea Drop Store Center",
+      address: "1234 Main St, San Francisco, CA 94122",
+      image: "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80",
     },
     {
-      cordinate: { latitude: 37.7896386, longitude: -122.421646 },
-      title: "Wikea Drop Store 2",
-      address: "1234 Main St, San Frasisco, CA 94122",
-      image: "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&q=80&w=2070&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      coordinate: {
+        latitude: 37.7896386,
+        longitude: -122.421646,
+      },
+      title: "Ikea Drop Store 2",
+      address: "1234 Main St, San Francisco, CA 94122",
+      image: "https://images.unsplash.com/photo-1524758631624-e2822e304c36?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80",
     },
     {
-      cordinate: { latitude: 37.7665248, longitude: -122.4161628 },
-      title: "Wikea Drop Store 2",
-      address: "1234 Main St, San Frasisco, CA 94122",
-      image: "https://images.unsplash.com/photo-1634712282287-14ed57b9cc89?auto=format&fit=crop&q=80&w=1812&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+      coordinate: { latitude: 37.7665248, longitude: -122.4161628 },
+      title: "Ikea Drop Store 3",
+      address: "1234 Main St, San Francisco, CA 94122",
+      image: "https://images.unsplash.com/photo-1605371924599-2d0365da1ae0?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1470&q=80",
     },
   ];
-  const { width } = useWindowDimensions();
+
+  const region = {
+    latitude: 37.78825,
+    longitude: -122.4324,
+    latitudeDelta: 0.0922,
+    longitudeDelta: 0.0421,
+  };
+
+  const onPressMarker = (mapData) => {
+    const markerId = mapData._targetInst.return.key;
+    scrollCarouselRef.current.scrollTo({ index: +markerId, animated: true });
+  };
+
+  const interpolations = markers.map((_, index) => {
+    const inputRange = [[index - 1] * width, index * width, [index + 1] * width];
+    const scale = mapAnimation.interpolate({
+      inputRange,
+      outputRange: [1, 1.5, 1],
+      extrapolate: "clamp",
+    });
+    return scale;
+  });
+
+  const carouselInterpolate = carouselAnimationRef.current.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, -1000],
+    extrapolate: "clamp",
+  });
+
+  const onTogglerCarousel = () => {
+    setIsShowCarousel((prev) => !prev);
+    Animated.timing(carouselAnimationRef.current, {
+      toValue: isShowCarousel ? 1 : 0,
+      duration: 1000,
+      useNativeDriver: true,
+    }).start();
+  };
+
   return (
     <View style={StyleSheet.absoluteFillObject}>
-      <MapView
-        initialRegion={{
-          latitude: 37.78825,
-          longitude: -122.4324,
-          latitudeDelta: 0.0922,
-          longitudeDelta: 0.0421,
+      <MapComponentDiscover interpolations={interpolations} mapRef={mapRef} markers={markers} onPressMarker={onPressMarker} region={region} />
+      <TogglerButton isShowCarousel={isShowCarousel} onToggler={onTogglerCarousel} />
+      <Animated.View
+        style={{
+          alignItems: "center",
+          transform: [
+            {
+              translateY: carouselInterpolate,
+            },
+          ],
         }}
-        style={StyleSheet.absoluteFillObject}
-      />
-      <View style={{ alignItems: "center" }}>
-        <Carousel
-          loop={false}
-          width={width - 30}
-          height={250}
-          autoPlay
-          data={markers}
-          style={{ top: 20 }}
-          scrollAnimationDuration={3000}
-          renderItem={({ item }) => (
-            <Card style={{ overflow: "hidden" }}>
-              <Card.Cover source={{ uri: item.image }} style={{ height: 150, borderRadius: 0 }} />
-              <Card.Content style={{ padding: 16, flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-                <View>
-                  <Text style={{ fontSize: 18, fontWeight: "500" }}>{item.title}</Text>
-                  <Text>{item.address}</Text>
-                </View>
-                <IconButton
-                  mode="outlined"
-                  onPress={() =>
-                    Linking.openURL(
-                      Platform.OS === "android"
-                        ? `google.navigation:q=${item.cordinate.latitude},${item.cordinate.longitude}`
-                        : `maps://app?daddr=${item.cordinate.latitude}, ${item.cordinate.longitude}`
-                    )
-                  }
-                  icon={() => <Ionicons size={24} name="locate" />}
-                ></IconButton>
-              </Card.Content>
-            </Card>
-          )}
-        />
-      </View>
-
-      <View style={{ position: "absolute", top: 100, left: 50 }} />
+      >
+        {/* Carousel DIscover */}
+        <CarouselDiscover mapAnimation={mapAnimation} mapRef={mapRef} markers={markers} region={region} scrollCarouselRef={scrollCarouselRef} width={width} />
+      </Animated.View>
     </View>
   );
 }
